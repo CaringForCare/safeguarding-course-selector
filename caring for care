@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caring for Care | Safeguarding Course Finder</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; opacity: 0; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 py-4 px-6 shadow-sm flex items-center justify-between sticky top-0 z-10">
+        <div class="flex items-center gap-2">
+            <i data-lucide="book-open" class="text-blue-600 w-6 h-6"></i>
+            <span class="font-bold text-lg tracking-tight">Caring for Care <span class="text-slate-400 font-normal">| Course Finder</span></span>
+        </div>
+        <div class="text-xs text-slate-400 font-medium bg-slate-100 px-3 py-1 rounded-full">
+           Interactive Guide
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="app-container" class="flex-1 flex flex-col items-center justify-center w-full">
+        <!-- Dynamic Content Injected Here -->
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-6 text-center text-slate-400 text-sm">
+        &copy; <span id="year"></span> Caring for Care Training Ltd.
+    </footer>
+
+    <script>
+        // --- Configuration & Data ---
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        const COURSES = {
+            LEVEL_2: {
+                id: 'l2',
+                title: 'Safeguarding Level 2',
+                subtitle: 'For Frontline Workers',
+                level: 2,
+                audience: 'Frontline staff, volunteers, and those in direct contact with service users.',
+                objectives: [
+                    'Recognise signs of abuse and neglect.',
+                    'Understand how to report concerns.',
+                    'Know your role in the safeguarding process.',
+                    'Maintain dignity and rights of individuals.'
+                ],
+                color: 'bg-blue-600',
+                link: 'https://caringforcare.co.uk/courses/safeguarding-adults-training/' // Default, logic handles override
+            },
+            LEVEL_3_DSL: {
+                id: 'l3_dsl',
+                title: 'Safeguarding Level 3 (DSL)',
+                subtitle: 'Designated Safeguarding Lead',
+                level: 3,
+                audience: 'Managers or staff formally designated as the Safeguarding Lead.',
+                objectives: [
+                    'Manage safeguarding concerns and referrals.',
+                    'Work with external agencies (police, social services).',
+                    'Understand complex legislation and guidance.',
+                    'Support staff with safeguarding issues.'
+                ],
+                color: 'bg-emerald-600',
+                link: 'https://caringforcare.co.uk/courses/designated-safeguarding-lead-training/'
+            },
+            LEVEL_3_MGR: {
+                id: 'l3_mgr',
+                title: 'Safeguarding for Managers (Level 3)',
+                subtitle: 'Operational Management',
+                level: 3,
+                audience: 'Managers without DSL responsibilities who oversee staff.',
+                objectives: [
+                    'Safer recruitment practices.',
+                    'Managing allegations against staff.',
+                    'Creating a safe culture.',
+                    'Supervising staff regarding safeguarding.'
+                ],
+                color: 'bg-teal-600',
+                link: 'https://caringforcare.co.uk/courses/safeguarding-managers-training/'
+            },
+            LEVEL_4: {
+                id: 'l4',
+                title: 'Safeguarding Level 4',
+                subtitle: 'Named Practitioner',
+                level: 4,
+                audience: 'Named Practitioners with specialized organizational responsibilities.',
+                objectives: [
+                    'Provide specialist advice to the organization.',
+                    'Resolve complex professional disagreements.',
+                    'Lead on policy development.',
+                    'Conduct internal case reviews.'
+                ],
+                color: 'bg-purple-600',
+                link: 'https://caringforcare.co.uk/courses/level-4-safeguarding-training-for-practitioner/'
+            },
+            LEVEL_5: {
+                id: 'l5',
+                title: 'Safeguarding Level 5',
+                subtitle: 'Senior Leaders & Board Members',
+                level: 5,
+                audience: 'Those with strategic responsibility for the organization.',
+                objectives: [
+                    'Strategic oversight of safeguarding.',
+                    'Governance and accountability.',
+                    'Commissioning and audit assurance.',
+                    'Reviewing organizational effectiveness.'
+                ],
+                color: 'bg-indigo-700',
+                link: 'https://caringforcare.co.uk/courses/level-5-safeguarding-training/'
+            }
+        };
+
+        // --- State Management ---
+        let state = {
+            step: 'welcome',
+            history: [],
+            answers: {},
+            result: null
+        };
+
+        // --- Navigation Logic ---
+        function navigate(nextStepId, answerKey = null, answerValue = null) {
+            if (answerKey) {
+                state.answers[answerKey] = answerValue;
+            }
+            state.history.push(state.step);
+            state.step = nextStepId;
+            render();
+        }
+
+        function goBack() {
+            if (state.history.length === 0) return;
+            state.step = state.history.pop();
+            state.result = null;
+            render();
+        }
+
+        function resetApp() {
+            state = {
+                step: 'welcome',
+                history: [],
+                answers: {},
+                result: null
+            };
+            render();
+        }
+
+        // --- Selection Handlers ---
+        function handleStart() { navigate('context'); }
+
+        function handleContextSelect(context) { navigate('role', 'context', context); }
+
+        function handleRoleSelect(role) {
+            if (role === 'frontline') {
+                state.result = COURSES.LEVEL_2;
+                navigate('result', 'role', 'frontline');
+            } else {
+                navigate('named_practitioner_check', 'role', 'manager');
+            }
+        }
+
+        function handleNamedPractitioner(isNamed) {
+            if (isNamed) {
+                state.result = COURSES.LEVEL_4;
+                navigate('result', 'isNamedPractitioner', true);
+            } else {
+                navigate('dsl_check', 'isNamedPractitioner', false);
+            }
+        }
+
+        function handleDsl(isDsl) {
+            if (isDsl) {
+                state.result = COURSES.LEVEL_3_DSL;
+                navigate('result', 'isDsl', true);
+            } else {
+                navigate('strategic_check', 'isDsl', false);
+            }
+        }
+
+        function handleStrategic(isStrategic) {
+            if (isStrategic) {
+                state.result = COURSES.LEVEL_5;
+                navigate('result', 'isStrategic', true);
+            } else {
+                state.result = COURSES.LEVEL_3_MGR;
+                navigate('result', 'isStrategic', false);
+            }
+        }
+
+        // --- Helper to Render HTML ---
+        function render() {
+            const container = document.getElementById('app-container');
+            let content = '';
+
+            switch (state.step) {
+                case 'welcome':
+                    content = `
+                        <div class="flex flex-col items-center justify-center h-full p-6 text-center fade-in">
+                            <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-6">
+                                <i data-lucide="shield" class="w-10 h-10 text-blue-600"></i>
+                            </div>
+                            <h1 class="text-3xl font-bold text-slate-800 mb-4">Course Finder</h1>
+                            <p class="text-slate-600 mb-8 max-w-md">
+                                Find the correct Caring for Care safeguarding course for you or your team in just a few clicks.
+                            </p>
+                            <button onclick="handleStart()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-xl shadow-lg transition-all transform hover:scale-105 flex items-center gap-2">
+                                Start Assessment <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    `;
+                    break;
+
+                case 'context':
+                    content = renderQuestion(
+                        "Who does your organisation support?",
+                        "This helps us tailor the course content to your specific needs.",
+                        [
+                            { label: "Adults at Risk", desc: "Care homes, domiciliary care, supported living.", icon: "user", color: "text-blue-600", func: "handleContextSelect('adults')" },
+                            { label: "Children & Young People", desc: "Nurseries, schools, foster agencies.", icon: "baby", color: "text-pink-500", func: "handleContextSelect('children')" },
+                            { label: "Both / Combined", desc: "Organisations working across all age groups.", icon: "users", color: "text-purple-600", func: "handleContextSelect('both')" }
+                        ]
+                    );
+                    break;
+
+                case 'role':
+                    content = renderQuestion(
+                        "What best describes your role?",
+                        "Are you working directly with service users or in a management position?",
+                        [
+                            { label: "Frontline Worker", desc: "I provide direct care or support (e.g., Care Worker, Nurse, Volunteer).", icon: "user", color: "text-emerald-600", bg: "bg-emerald-100", func: "handleRoleSelect('frontline')" },
+                            { label: "Manager / Lead / Senior", desc: "I have supervisory, managerial, or strategic responsibilities.", icon: "briefcase", color: "text-indigo-600", bg: "bg-indigo-100", func: "handleRoleSelect('manager')" }
+                        ]
+                    );
+                    break;
+
+                case 'named_practitioner_check':
+                    content = renderQuestion(
+                        "Specialist Responsibilities",
+                        "Do you hold the specific title of 'Named Practitioner'?",
+                        [
+                            { label: "Yes, I am a Named Practitioner", desc: "I have specific specialist responsibilities for the organisation.", icon: "award", color: "text-purple-600", bg: "bg-purple-100", func: "handleNamedPractitioner(true)" },
+                            { label: "No", desc: "I do not hold this specific title.", icon: "shield", color: "text-slate-500", bg: "bg-slate-100", func: "handleNamedPractitioner(false)" }
+                        ]
+                    );
+                    break;
+
+                case 'dsl_check':
+                    content = renderQuestion(
+                        "Safeguarding Lead Duties",
+                        "Are you the Designated Safeguarding Lead (DSL) for your organisation?",
+                        [
+                            { label: "Yes, I have DSL responsibilities", desc: "I manage referrals and act as the main point of contact for concerns.", icon: "shield", color: "text-emerald-600", bg: "bg-emerald-100", func: "handleDsl(true)" },
+                            { label: "No", desc: "I am a manager, but not the primary DSL.", icon: "user", color: "text-slate-500", bg: "bg-slate-100", func: "handleDsl(false)" }
+                        ]
+                    );
+                    break;
+
+                case 'strategic_check':
+                    content = renderQuestion(
+                        "Strategic Responsibility",
+                        "Do you have strategic responsibility for the organisation's safeguarding?",
+                        [
+                            { label: "Yes, Senior Leader / Board Member", desc: "I oversee governance, policy, and organizational compliance.", icon: "briefcase", color: "text-indigo-700", bg: "bg-indigo-100", func: "handleStrategic(true)" },
+                            { label: "No, Operational Manager", desc: "I manage staff and day-to-day operations.", icon: "users", color: "text-teal-600", bg: "bg-teal-100", func: "handleStrategic(false)" }
+                        ]
+                    );
+                    break;
+
+                case 'result':
+                    content = renderResultScreen();
+                    break;
+            }
+
+            container.innerHTML = content;
+            lucide.createIcons(); // Refresh icons
+        }
+
+        // --- Template Generators ---
+        function renderQuestion(title, subtitle, options) {
+            const btns = options.map(opt => `
+                <button onclick="${opt.func}" class="w-full text-left p-5 rounded-xl border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all group flex items-start gap-4 mb-4">
+                    <div class="p-3 rounded-full ${opt.bg || 'bg-slate-100'} group-hover:bg-white transition-colors">
+                        <i data-lucide="${opt.icon}" class="w-6 h-6 ${opt.color}"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-lg text-slate-800">${opt.label}</h3>
+                        <p class="text-sm text-slate-500 mt-1">${opt.desc}</p>
+                    </div>
+                </button>
+            `).join('');
+
+            return `
+                <div class="flex flex-col h-full max-w-2xl w-full p-6 fade-in">
+                    <button onclick="goBack()" class="text-slate-400 hover:text-slate-600 self-start mb-6 flex items-center gap-1">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i> Back
+                    </button>
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-2">${title}</h2>
+                        ${subtitle ? `<p class="text-slate-600">${subtitle}</p>` : ''}
+                    </div>
+                    <div class="w-full">
+                        ${btns}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderResultScreen() {
+            const result = state.result;
+            const contextLabel = state.answers.context === 'adults' ? 'Adults' : state.answers.context === 'children' ? 'Children' : 'All Ages';
+            
+            // Logic for Level 2 URL
+            let courseUrl = result.link;
+            if (result.id === 'l2') {
+                if (state.answers.context === 'children') {
+                    courseUrl = 'https://caringforcare.co.uk/courses/safeguarding-children-training/';
+                } else {
+                    courseUrl = 'https://caringforcare.co.uk/courses/safeguarding-adults-training/';
+                }
+            }
+
+            const objectivesList = result.objectives.map(obj => `
+                <li class="flex items-start gap-2 text-slate-600 text-sm">
+                    <span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-slate-400 flex-shrink-0"></span>
+                    ${obj}
+                </li>
+            `).join('');
+
+            return `
+                <div class="flex flex-col h-full max-w-3xl w-full p-6 fade-in">
+                    <div class="flex justify-between items-center mb-6">
+                        <button onclick="goBack()" class="text-slate-400 hover:text-slate-600 flex items-center gap-1">
+                            <i data-lucide="chevron-left" class="w-5 h-5"></i> Change Answers
+                        </button>
+                        <button onclick="resetApp()" class="text-slate-400 hover:text-blue-600 flex items-center gap-1 text-sm font-medium">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i> Start Over
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+                        <div class="${result.color} p-6 text-white">
+                            <div class="flex items-center gap-2 mb-2 opacity-90 text-sm font-medium tracking-wide uppercase">
+                                <i data-lucide="award" class="w-4 h-4"></i> Recommended Course
+                            </div>
+                            <h1 class="text-3xl font-bold mb-1">${result.title}</h1>
+                            <p class="text-white/90 text-lg">${result.subtitle}</p>
+                            <div class="mt-4 inline-flex items-center bg-white/20 px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm">
+                                Focus: ${contextLabel}
+                            </div>
+                        </div>
+
+                        <div class="p-8">
+                            <div class="grid md:grid-cols-2 gap-8 mb-8">
+                                <div>
+                                    <h3 class="text-slate-900 font-bold mb-3 flex items-center gap-2">
+                                        <i data-lucide="users" class="w-5 h-5 text-blue-600"></i> Ideal Audience
+                                    </h3>
+                                    <p class="text-slate-600 leading-relaxed">
+                                        ${result.audience}
+                                    </p>
+                                </div>
+                                
+                                <div>
+                                    <h3 class="text-slate-900 font-bold mb-3 flex items-center gap-2">
+                                        <i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i> Key Objectives
+                                    </h3>
+                                    <ul class="space-y-2">
+                                        ${objectivesList}
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col md:flex-row gap-4 pt-6 border-t border-slate-100">
+                                <a href="${courseUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
+                                    Book This Course
+                                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                                </a>
+                                <button class="flex-1 bg-white border-2 border-slate-200 hover:border-blue-500 hover:text-blue-600 text-slate-700 font-bold py-4 px-6 rounded-xl transition-all">
+                                    Request Bespoke Package
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Init ---
+        render();
+    </script>
+</body>
+</html>
